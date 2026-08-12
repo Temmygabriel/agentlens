@@ -31,6 +31,24 @@ function decodeDataUri(uri: string): string | null {
   }
 }
 
+export function normalizeEndpoint(raw: string): string {
+  const value = raw.trim();
+  const markdown = value.match(/^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/i);
+  if (markdown) return markdown[2];
+  return value;
+}
+
+export function classifyServiceProtocol(name?: string, endpoint?: string): string {
+  const value = `${name ?? ""} ${endpoint ?? ""}`.toLowerCase();
+  if (value.includes("agentwallet") || value.startsWith("eip155:")) return "agentWallet";
+  if (value.includes("email") || value.startsWith("mailto:")) return "email";
+  if (value.includes("mcp")) return "MCP";
+  if (value.includes("a2a") || value.includes("agent-card")) return "A2A";
+  if (value.includes("oasf")) return "OASF";
+  if (value.includes("x402")) return "x402";
+  return "web";
+}
+
 export async function resolveAgentMetadata(uri: string): Promise<AgentRegistration> {
   const data = decodeDataUri(uri);
   if (data) return JSON.parse(data) as AgentRegistration;
