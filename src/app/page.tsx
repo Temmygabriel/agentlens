@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Agent = {
@@ -64,23 +65,29 @@ export default function Home() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-          {agents.map((agent) => (
-            <article key={agent.id} style={{ border: "1px solid #e2e2e2", borderRadius: 16, padding: 20, minHeight: 180 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 18 }}>{agent.name || "Unnamed agent"}</h3>
-                  <p style={{ margin: "7px 0 0", fontSize: 12, opacity: 0.5 }}>Agent #{agent.agent_id.split(":").pop()}</p>
-                </div>
-                <span style={{ fontSize: 11, fontWeight: 700 }}>{statusLabel(agent.health_status)}</span>
-              </div>
-              <p style={{ fontSize: 14, lineHeight: 1.5, opacity: 0.7, marginTop: 20 }}>
-                {agent.description || "No description provided yet."}
-              </p>
-              <div style={{ fontSize: 12, opacity: 0.55, marginTop: 18 }}>
-                {agent.active_claimed ? "Claimed active" : "Registration status available"}
-              </div>
-            </article>
-          ))}
+          {agents.map((agent) => {
+            const tokenId = agent.agent_id.split(":").pop();
+            return (
+              <Link key={agent.id} href={`/agents/${tokenId}`} style={{ color: "inherit", textDecoration: "none" }}>
+                <article style={{ border: "1px solid #e2e2e2", borderRadius: 16, padding: 20, minHeight: 180, height: "100%", boxSizing: "border-box" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: 18 }}>{agent.name || "Unnamed agent"}</h3>
+                      <p style={{ margin: "7px 0 0", fontSize: 12, opacity: 0.5 }}>Agent #{tokenId}</p>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700 }}>{statusLabel(agent.health_status)}</span>
+                  </div>
+                  <p style={{ fontSize: 14, lineHeight: 1.5, opacity: 0.7, marginTop: 20 }}>
+                    {agent.description || "No description provided yet."}
+                  </p>
+                  <div style={{ fontSize: 12, opacity: 0.55, marginTop: 18 }}>
+                    {agent.active_claimed ? "Claimed active" : "Registration status available"}
+                    <span style={{ float: "right", fontWeight: 650 }}>View evidence →</span>
+                  </div>
+                </article>
+              </Link>
+            );
+          })}
         </div>
 
         {!loading && agents.length === 0 && (
