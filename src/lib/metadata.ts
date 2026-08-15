@@ -49,6 +49,93 @@ export function classifyServiceProtocol(name?: string, endpoint?: string): strin
   return "web";
 }
 
+// --- Rich metadata extraction (OASF-aware, defensive) -----------------
+//
+// Registration JSON is untrusted, third-party, and inconsistent in shape.
+// These extractors never throw: unknown/missing fields simply yield [].
+
+const KNOWN_CAPABILITY_KEYWORDS: Record<string, string[]> = {
+  trading: ["trade", "trading", "swap", "market-making", "arbitrage", "dex", "execution"],
+  yield: ["yield", "liquidity", "lp", "staking", "apy", "lending", "borrowing"],
+  monitoring: ["monitor", "monitoring", "alert", "watch", "position", "health factor", "liquidation"],
+  research: ["research", "analysis", "analytics", "news", "intelligence", "insights"],
+  security: ["security", "risk", "audit", "threat", "scam", "safety"],
+  automation: ["automation", "automate", "workflow", "orchestration"],
+};
+
+function stringsFrom(value: unknown): string[] {
+  const out: string[] = [];
+  if (typeof value === "string") {
+    out.push(value);
+  } else if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item === "string") out.push(item);
+      else if (item && typeof item === "object") {
+        const obj = item as Record<string, unknown>;
+        const candidate = obj.name ?? obj.id ?? obj.label ?? obj.title;
+        if (typeof candidate === "string") out.push(candidate);
+      }
+    }
+  }
+  return out.map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/**
+ * Extracts declared capabilities from a registration document.
+ * Looks for explicit fields first (capabilities, skills, OASF-style
+ * extensions.skills), then falls back to keyword inference against
+ * name/description so agents with no structured metadata still get
+ * *something* — clearly weaker evidence, but not zero evidence.
+ */
+export function extractCapabilities(registration: AgentRegistration): string[] {
+  const explicit = new Set<string>([
+    ...stringsFrom(registration.capabilities),
+    ...stringsFrom(registration.skills),
+    ...stringsFrom((registration.extensions as Record<string, unknown> | undefined)?.["skills"]),
+    ...stringsFrom((registration["x-oasf"] as Record<string, unknown> | undefined)?.["skills"]),
+  ]);
+
+  if (explicit.size > 0) return [...explicit];
+
+  // Fallback: infer from name + description text only when nothing explicit exists.
+  const text = `${registration.name ?? ""} ${registration.description ?? ""}`.toLowerCase();
+  const inferred = Object.entries(KNOWN_CAPABILITY_KEYWORDS)
+    .filter(([, terms]) => terms.some((term) => text.includes(term)))
+    .map(([id]) => id);
+  return inferred;
+}
+
+/**
+ * Extracts declared domains (e.g. "defi", "gaming", "social") from
+ * explicit registration fields or OASF-style taxonomy extensions.
+ */
+export function extractDomains(registration: AgentRegistration): string[] {
+  const explicit = new Set<string>([
+    ...stringsFrom(registration.domains),
+    ...stringsFrom(registration.domain),
+    ...stringsFrom((registration.extensions as Record<string, unknown> | undefined)?.["domains"]),
+    ...stringsFrom((registration["x-oasf"] as Record<string, unknown> | undefined)?.["domains"]),
+  ]);
+  return [...explicit];
+}
+
+/**
+ * Extracts the set of distinct service protocols declared for an agent
+ * (web, MCP, A2A, OASF, agentWallet, email, x402, ...), reusing the
+ * same classifier the health checker uses so the two stay consistent.
+ */
+export function extractProtocols(registration: AgentRegistration): string[] {
+  const services = Array.isArray(registration.services) ? registration.services : [];
+  const protocols = new Set<string>();
+  for (const service of services) {
+    if (!service) continue;
+    const endpoint = typeof service.endpoint === "string" ? normalizeEndpoint(service.endpoint) : undefined;
+    protocols.add(classifyServiceProtocol(service.name, endpoint));
+  }
+  if (registration.x402Support) protocols.add("x402");
+  return [...protocols];
+}
+
 export async function resolveAgentMetadata(uri: string): Promise<AgentRegistration> {
   const data = decodeDataUri(uri);
   if (data) return JSON.parse(data) as AgentRegistration;
