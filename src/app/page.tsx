@@ -1,101 +1,22 @@
 "use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import {useEffect,useState} from "react";
 
-type Agent = {
-  id: number;
-  agent_id: string;
-  name: string | null;
-  description: string | null;
-  image: string | null;
-  active_claimed: boolean | null;
-  health_status: string | null;
-  last_seen: string | null;
-};
+type Agent={id:number;agent_id:string;name:string|null;description:string|null;active_claimed:boolean|null;health_status:string|null};
+const status=(s:string|null)=>s==="LIVE"?"LIVE":s==="DEAD"?"DEAD":s==="TIMEOUT"?"SLOW":"UNVERIFIED";
+const initials=(n:string|null)=>(n||"Agent").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 
-function statusLabel(status: string | null) {
-  if (status === "LIVE") return "LIVE";
-  if (status === "DEAD") return "DEAD";
-  if (status === "TIMEOUT") return "TIMEOUT";
-  return "UNVERIFIED";
-}
-
-export default function Home() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      const response = await fetch(`/api/agents?q=${encodeURIComponent(q)}&limit=50`);
-      const data = await response.json();
-      setAgents(data.agents ?? []);
-      setLoading(false);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [q]);
-
-  return (
-    <main style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 24px", fontFamily: "system-ui, sans-serif" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 70 }}>
-        <strong style={{ fontSize: 22 }}>AgentLens</strong>
-        <span style={{ fontSize: 13, opacity: 0.6 }}>BNB Smart Chain · ERC-8004</span>
-      </header>
-
-      <section style={{ maxWidth: 760, marginBottom: 48 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: 0.6 }}>The agent marketplace with evidence</p>
-        <h1 style={{ fontSize: 56, lineHeight: 1.05, margin: "14px 0 18px" }}>Find an agent you can actually use.</h1>
-        <p style={{ fontSize: 19, lineHeight: 1.6, opacity: 0.7 }}>
-          Discover BNB agents, compare what they do, and see evidence of whether they are reachable and active.
-        </p>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search agents by name or capability..."
-          style={{ width: "100%", marginTop: 28, padding: "17px 18px", border: "1px solid #ccc", borderRadius: 12, fontSize: 16, boxSizing: "border-box" }}
-        />
-      </section>
-
-      <section>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <h2 style={{ margin: 0 }}>BNB agents</h2>
-          <span style={{ fontSize: 13, opacity: 0.6 }}>{loading ? "Loading..." : `${agents.length} found`}</span>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-          {agents.map((agent) => {
-            const tokenId = agent.agent_id.split(":").pop();
-            return (
-              <Link key={agent.id} href={`/agents/${tokenId}`} style={{ color: "inherit", textDecoration: "none" }}>
-                <article style={{ border: "1px solid #e2e2e2", borderRadius: 16, padding: 20, minHeight: 180, height: "100%", boxSizing: "border-box" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: 18 }}>{agent.name || "Unnamed agent"}</h3>
-                      <p style={{ margin: "7px 0 0", fontSize: 12, opacity: 0.5 }}>Agent #{tokenId}</p>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 700 }}>{statusLabel(agent.health_status)}</span>
-                  </div>
-                  <p style={{ fontSize: 14, lineHeight: 1.5, opacity: 0.7, marginTop: 20 }}>
-                    {agent.description || "No description provided yet."}
-                  </p>
-                  <div style={{ fontSize: 12, opacity: 0.55, marginTop: 18 }}>
-                    {agent.active_claimed ? "Claimed active" : "Registration status available"}
-                    <span style={{ float: "right", fontWeight: 650 }}>View evidence →</span>
-                  </div>
-                </article>
-              </Link>
-            );
-          })}
-        </div>
-
-        {!loading && agents.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", border: "1px dashed #ccc", borderRadius: 16 }}>
-            No matching agents yet.
-          </div>
-        )}
-      </section>
-    </main>
-  );
+export default function Home(){
+ const [agents,setAgents]=useState<Agent[]>([]),[q,setQ]=useState(""),[loading,setLoading]=useState(true);
+ useEffect(()=>{const t=setTimeout(async()=>{setLoading(true);const r=await fetch(`/api/agents?q=${encodeURIComponent(q)}&limit=50`);const d=await r.json();setAgents(d.agents||[]);setLoading(false)},250);return()=>clearTimeout(t)},[q]);
+ return <div className="shell">
+  <nav className="nav"><div className="container" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Link href="/" className="brand"><span className="brand-mark">A</span>AgentLens</Link><span className="nav-note">BNB Smart Chain · ERC-8004</span></div></nav>
+  <main className="container">
+   <section className="hero"><div className="eyebrow"><span className="eyebrow-dot"/>Verified agent discovery</div><h1>Find an agent you can actually use.</h1><p>Discover AI agents on BNB Smart Chain, compare what they do, and inspect evidence before you put them to work.</p><div className="search-wrap"><span className="search-icon">⌕</span><input className="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search by agent name, capability, or description…"/></div><div className="stats"><div className="stat"><strong>{loading?"—":agents.length}</strong> agents found</div><div className="stat"><strong>BNB</strong> Smart Chain</div><div className="stat"><strong>ERC-8004</strong> identity</div></div></section>
+   <section><div className="section-head"><div><h2>Explore agents</h2><span>Start with evidence, not promises.</span></div><span>{loading?"Loading…":`${agents.length} found`}</span></div>
+    {loading?<div className="grid">{[1,2,3,4,5,6].map(i=><div key={i} className="card" style={{opacity:.4}}/>)}</div>:agents.length===0?<div className="empty">No matching agents yet. Try a broader search.</div>:<div className="grid">{agents.map(a=>{const id=a.agent_id.split(":").pop();const live=a.health_status==="LIVE";return <Link key={a.id} href={`/agents/${id}`} className="card"><div className="card-top"><div className="avatar">{initials(a.name)}</div><span className={`badge ${live?"badge-live":"badge-neutral"}`}>{status(a.health_status)}</span></div><div className="card-title" style={{marginTop:16}}><h3>{a.name||"Unnamed agent"}</h3><div className="agent-id">ERC-8004 · Agent #{id}</div></div><p className="card-description">{a.description||"No description provided in the registration."}</p><div className="card-footer"><span>{a.active_claimed?"Active claimed":"Registration found"}</span><span className="card-link">View evidence →</span></div></Link>})}</div>}
+   </section>
+  </main>
+  <footer className="footer"><div className="container footer-inner"><span><strong>AgentLens</strong> — the evidence layer for BNB AI agents.</span><span>Built for the Smart Money Era</span></div></footer>
+ </div>;
 }
