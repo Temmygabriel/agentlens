@@ -2,6 +2,9 @@ export type AgentService = {
   name?: string;
   endpoint?: string;
   version?: string;
+  skills?: unknown;
+  domains?: unknown;
+  [key: string]: unknown;
 };
 
 export type AgentRegistration = {
@@ -10,12 +13,27 @@ export type AgentRegistration = {
   description?: string;
   image?: string;
   services?: AgentService[];
+  // Legacy field name (pre Jan 2026 EIP-8004 spec) — still widely used.
+  // See https://best-practices.8004scan.io/docs/01-agent-metadata-standard.html
+  endpoints?: AgentService[];
   active?: boolean;
   x402Support?: boolean;
   registrations?: Array<Record<string, unknown>>;
   supportedTrust?: string[];
   [key: string]: unknown;
 };
+
+/**
+ * Returns the agent's declared services array, preferring the current
+ * "services" field name but falling back to the legacy "endpoints" name
+ * (both are valid per 8004scan's field-name migration guidance — if
+ * both are present, "services" wins).
+ */
+function servicesOf(registration: AgentRegistration): AgentService[] {
+  if (Array.isArray(registration.services)) return registration.services;
+  if (Array.isArray(registration.endpoints)) return registration.endpoints;
+  return [];
+}
 
 function decodeDataUri(uri: string): string | null {
   if (!uri.startsWith("data:")) return null;
@@ -53,6 +71,13 @@ export function classifyServiceProtocol(name?: string, endpoint?: string): strin
 //
 // Registration JSON is untrusted, third-party, and inconsistent in shape.
 // These extractors never throw: unknown/missing fields simply yield [].
+//
+// Per 8004scan's Agent Metadata Profile, OASF skills/domains live INSIDE
+// the OASF service entry (services[].skills / services[].domains), not
+// at the top level of the registration document:
+//   { "services": [ { "name": "OASF", "skills": [...], "domains": [...] } ] }
+// We check there first, then fall back to top-level fields some agents
+// place them at anyway, then finally to keyword inference from text.
 
 const KNOWN_CAPABILITY_KEYWORDS: Record<string, string[]> = {
   trading: ["trade", "trading", "swap", "market-making", "arbitrage", "dex", "execution"],
@@ -80,19 +105,27 @@ function stringsFrom(value: unknown): string[] {
   return out.map((s) => s.trim().toLowerCase()).filter(Boolean);
 }
 
+function findOasfService(registration: AgentRegistration): AgentService | undefined {
+  return servicesOf(registration).find(
+    (service) => (service?.name ?? "").toLowerCase() === "oasf",
+  );
+}
+
 /**
- * Extracts declared capabilities from a registration document.
- * Looks for explicit fields first (capabilities, skills, OASF-style
- * extensions.skills), then falls back to keyword inference against
- * name/description so agents with no structured metadata still get
- * *something* — clearly weaker evidence, but not zero evidence.
+ * Extracts declared capabilities (OASF "skills") from a registration
+ * document. Checks the OASF service entry first (the standard
+ * location), then legacy top-level fields, then falls back to keyword
+ * inference against name/description so agents with no structured
+ * metadata still get *something* — clearly weaker evidence, but not
+ * zero evidence.
  */
 export function extractCapabilities(registration: AgentRegistration): string[] {
+  const oasf = findOasfService(registration);
   const explicit = new Set<string>([
+    ...stringsFrom(oasf?.skills),
     ...stringsFrom(registration.capabilities),
     ...stringsFrom(registration.skills),
     ...stringsFrom((registration.extensions as Record<string, unknown> | undefined)?.["skills"]),
-    ...stringsFrom((registration["x-oasf"] as Record<string, unknown> | undefined)?.["skills"]),
   ]);
 
   if (explicit.size > 0) return [...explicit];
@@ -106,15 +139,17 @@ export function extractCapabilities(registration: AgentRegistration): string[] {
 }
 
 /**
- * Extracts declared domains (e.g. "defi", "gaming", "social") from
- * explicit registration fields or OASF-style taxonomy extensions.
+ * Extracts declared domains (e.g. "technology/blockchain",
+ * "finance_and_business/finance") from the OASF service entry, falling
+ * back to legacy top-level fields.
  */
 export function extractDomains(registration: AgentRegistration): string[] {
+  const oasf = findOasfService(registration);
   const explicit = new Set<string>([
+    ...stringsFrom(oasf?.domains),
     ...stringsFrom(registration.domains),
     ...stringsFrom(registration.domain),
     ...stringsFrom((registration.extensions as Record<string, unknown> | undefined)?.["domains"]),
-    ...stringsFrom((registration["x-oasf"] as Record<string, unknown> | undefined)?.["domains"]),
   ]);
   return [...explicit];
 }
@@ -123,9 +158,10 @@ export function extractDomains(registration: AgentRegistration): string[] {
  * Extracts the set of distinct service protocols declared for an agent
  * (web, MCP, A2A, OASF, agentWallet, email, x402, ...), reusing the
  * same classifier the health checker uses so the two stay consistent.
+ * Supports both "services" (current) and "endpoints" (legacy) field names.
  */
 export function extractProtocols(registration: AgentRegistration): string[] {
-  const services = Array.isArray(registration.services) ? registration.services : [];
+  const services = servicesOf(registration);
   const protocols = new Set<string>();
   for (const service of services) {
     if (!service) continue;

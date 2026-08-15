@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { fetchIndexedAgents, type IndexedAgent } from "@/lib/scan";
+import { fetchIndexedAgents, parseOnChainTokenId, type IndexedAgent } from "@/lib/scan";
+import { getAgentTokenUri } from "@/lib/erc8004";
 import {
   extractCapabilities,
   extractDomains,
@@ -33,6 +34,30 @@ type EnrichedRow = {
   updated_at: string;
 };
 
+/**
+ * 8004scan's list API doesn't reliably return a ready-to-use agentUri
+ * per agent. When it's missing, we fall back to reading tokenURI
+ * straight from the on-chain Identity Registry — the same approach
+ * already used successfully by the agent detail page (see
+ * src/app/api/agents/[agentId]/route.ts). This costs one extra public
+ * RPC call per agent that 8004scan didn't already give us a URI for.
+ */
+async function resolveAgentUri(agent: IndexedAgent): Promise<string | null> {
+  if (agent.agentUri) return agent.agentUri;
+
+  const tokenId = parseOnChainTokenId(agent.agentId);
+  if (tokenId === null) return null;
+
+  try {
+    const uri = await getAgentTokenUri(tokenId);
+    return uri || null;
+  } catch {
+    // On-chain read failed (bad RPC, rate limit, etc). Caller will
+    // record this as a metadata_error and move on to the next agent.
+    return null;
+  }
+}
+
 async function enrichAgent(agent: IndexedAgent): Promise<EnrichedRow> {
   const base: EnrichedRow = {
     chain_id: agent.chainId,
@@ -54,13 +79,16 @@ async function enrichAgent(agent: IndexedAgent): Promise<EnrichedRow> {
     updated_at: new Date().toISOString(),
   };
 
-  if (!agent.agentUri) {
-    base.metadata_error = "No agentUri available to resolve";
+  const agentUri = await resolveAgentUri(agent);
+  base.agent_uri = agentUri;
+
+  if (!agentUri) {
+    base.metadata_error = "Could not resolve agentUri from 8004scan or on-chain tokenURI";
     return base;
   }
 
   try {
-    const registration = await resolveAgentMetadata(agent.agentUri);
+    const registration = await resolveAgentMetadata(agentUri);
     base.registration_json = registration;
     base.name = registration.name ?? base.name;
     base.description = registration.description ?? base.description;

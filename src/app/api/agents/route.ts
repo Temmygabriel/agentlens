@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { CAPABILITIES } from "@/lib/discovery";
 import { rankAgents } from "@/lib/match";
-import { CAPABILITIES } from "@/lib/discovery";
-import { rankAgents } from "@/lib/match";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim() ?? "";
     const status = searchParams.get("status")?.trim() ?? "";
-    const capability = searchParams.get("capability")?.trim() ?? "";
     const capability = searchParams.get("capability")?.trim() ?? "";
     const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 50), 1), 100);
     const supabase = getSupabaseAdmin();
