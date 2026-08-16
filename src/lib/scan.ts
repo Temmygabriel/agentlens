@@ -66,3 +66,22 @@ export async function fetchIndexedAgents({ page = 1, limit = 50, chainId = 56 } 
   const agents = unwrap(payload).map(mapAgent).filter(Boolean) as IndexedAgent[];
   return { agents, raw: payload };
 }
+
+/**
+ * 8004scan's list API does not reliably include a resolvable metadata
+ * URI per agent — its "agentId" is instead a composite string like
+ * "56:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432:266231" (chainId:registry:tokenId).
+ * When we can't find an agentUri in the list payload, we fall back to
+ * reading tokenURI directly from the on-chain registry using the
+ * numeric token ID extracted from this composite string.
+ */
+export function parseOnChainTokenId(agentId: string): bigint | null {
+  const parts = agentId.split(":");
+  const last = parts[parts.length - 1];
+  if (!last || !/^\d+$/.test(last)) return null;
+  try {
+    return BigInt(last);
+  } catch {
+    return null;
+  }
+}

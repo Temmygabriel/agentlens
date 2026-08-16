@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAgentOwner, getAgentTokenUri } from "@/lib/erc8004";
-import { resolveAgentMetadata } from "@/lib/metadata";
+import { extractCapabilities, extractDomains, extractProtocols, resolveAgentMetadata } from "@/lib/metadata";
 
 export async function GET(
   _request: Request,
@@ -21,8 +21,14 @@ export async function GET(
 
     let metadata = null;
     let metadataError = null;
+    let capabilities: string[] = [];
+    let domains: string[] = [];
+    let protocols: string[] = [];
     try {
       metadata = await resolveAgentMetadata(agentUri);
+      capabilities = extractCapabilities(metadata);
+      domains = extractDomains(metadata);
+      protocols = extractProtocols(metadata);
     } catch (error) {
       metadataError = error instanceof Error ? error.message : "Metadata resolution failed";
     }
@@ -34,6 +40,9 @@ export async function GET(
       agentUri,
       metadata,
       metadataError,
+      capabilities,
+      domains,
+      protocols,
     });
   } catch (error) {
     return NextResponse.json(
