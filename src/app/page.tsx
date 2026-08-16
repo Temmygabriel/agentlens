@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import {useEffect,useState} from "react";
+import {readCompareIds,writeCompareIds,MAX_COMPARE} from "@/lib/compare";
 
 type Agent={id:number;agent_id:string;name:string|null;description:string|null;active_claimed:boolean|null;health_status:string|null;capabilities?:string[]|null};
 const PAGE_SIZE=24;
@@ -10,6 +11,9 @@ const initials=(n:string|null)=>(n||"Agent").split(/\s+/).slice(0,2).map(x=>x[0]
 export default function Home(){
  const [agents,setAgents]=useState<Agent[]>([]),[q,setQ]=useState(""),[loading,setLoading]=useState(true);
  const [total,setTotal]=useState(0),[hasMore,setHasMore]=useState(false),[loadingMore,setLoadingMore]=useState(false);
+ const [compareIds,setCompareIds]=useState<string[]>([]);
+ useEffect(()=>{setCompareIds(readCompareIds())},[]);
+ function toggleCompare(id:string){setCompareIds(prev=>{const next=prev.includes(id)?prev.filter(x=>x!==id):prev.length<MAX_COMPARE?[...prev,id]:prev;writeCompareIds(next);return next})}
  useEffect(()=>{const t=setTimeout(async()=>{setLoading(true);const r=await fetch(`/api/agents?q=${encodeURIComponent(q)}&limit=${PAGE_SIZE}&offset=0`);const d=await r.json();setAgents(d.agents||[]);setTotal(d.total??0);setHasMore(!!d.hasMore);setLoading(false)},250);return()=>clearTimeout(t)},[q]);
  async function loadMore(){setLoadingMore(true);const r=await fetch(`/api/agents?q=${encodeURIComponent(q)}&limit=${PAGE_SIZE}&offset=${agents.length}`);const d=await r.json();setAgents(prev=>[...prev,...(d.agents||[])]);setHasMore(!!d.hasMore);setLoadingMore(false)}
  return <div className="shell">
@@ -18,11 +22,12 @@ export default function Home(){
    <section className="hero"><div className="eyebrow"><span className="eyebrow-dot"/>Verified agent discovery</div><h1>Find an agent you can actually use.</h1><p>Discover AI agents on BNB Smart Chain, compare what they do, and inspect evidence before you put them to work.</p><div className="search-wrap"><span className="search-icon">⌕</span><input className="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search by agent name, capability, or description…"/></div><div className="stats"><div className="stat"><strong>{loading?"—":total}</strong> agents found</div><div className="stat"><strong>BNB</strong> Smart Chain</div><div className="stat"><strong>ERC-8004</strong> identity</div></div></section>
    <section><div className="section-head"><div><h2>Explore agents</h2><span>Start with evidence, not promises.</span></div><span>{loading?"Loading…":`${total} found`}</span></div>
     {loading?<div className="grid">{[1,2,3,4,5,6].map(i=><div key={i} className="card" style={{opacity:.4}}/>)}</div>:agents.length===0?<div className="empty">No matching agents yet. Try a broader search.</div>:<>
-    <div className="grid">{agents.map(a=>{const id=a.agent_id.split(":").pop();const live=a.health_status==="LIVE";const caps=a.capabilities||[];return <Link key={a.id} href={`/agents/${id}`} className="card"><div className="card-top"><div className="avatar">{initials(a.name)}</div><span className={`badge ${live?"badge-live":"badge-neutral"}`}>{status(a.health_status)}</span></div><div className="card-title" style={{marginTop:16}}><h3>{a.name||"Unnamed agent"}</h3><div className="agent-id">ERC-8004 · Agent #{id}</div></div>{caps.length>0&&<div className="tag-list">{caps.slice(0,3).map(c=><span key={c} className="tag">{c}</span>)}{caps.length>3&&<span className="tag tag-more">+{caps.length-3}</span>}</div>}<p className="card-description">{a.description||"No description provided in the registration."}</p><div className="card-footer"><span>{a.active_claimed?"Active claimed":"Registration found"}</span><span className="card-link">View evidence →</span></div></Link>})}</div>
+    <div className="grid">{agents.map(a=>{const id=a.agent_id.split(":").pop()!;const live=a.health_status==="LIVE";const caps=a.capabilities||[];const selected=compareIds.includes(id);return <Link key={a.id} href={`/agents/${id}`} className="card"><div className="card-top"><div className="avatar">{initials(a.name)}</div><div style={{display:"flex",gap:8,alignItems:"center"}}><button type="button" title="Add to compare" className={`compare-toggle ${selected?"active":""}`} onClick={e=>{e.preventDefault();e.stopPropagation();toggleCompare(id)}}>{selected?"✓":"+"}</button><span className={`badge ${live?"badge-live":"badge-neutral"}`}>{status(a.health_status)}</span></div></div><div className="card-title" style={{marginTop:16}}><h3>{a.name||"Unnamed agent"}</h3><div className="agent-id">ERC-8004 · Agent #{id}</div></div>{caps.length>0&&<div className="tag-list">{caps.slice(0,3).map(c=><span key={c} className="tag">{c}</span>)}{caps.length>3&&<span className="tag tag-more">+{caps.length-3}</span>}</div>}<p className="card-description">{a.description||"No description provided in the registration."}</p><div className="card-footer"><span>{a.active_claimed?"Active claimed":"Registration found"}</span><span className="card-link">View evidence →</span></div></Link>})}</div>
     {hasMore&&<div style={{display:"flex",justifyContent:"center",paddingBottom:80}}><button className="clear-filter" onClick={loadMore} disabled={loadingMore}>{loadingMore?"Loading…":`Load more (${total-agents.length} remaining)`}</button></div>}
     </>}
    </section>
   </main>
   <footer className="footer"><div className="container footer-inner"><span><strong>AgentLens</strong> — the evidence layer for BNB AI agents.</span><span>Built for the Smart Money Era</span></div></footer>
+  {compareIds.length>=2&&<div className="compare-bar"><span>{compareIds.length} agent{compareIds.length>1?"s":""} selected</span><div style={{display:"flex",gap:10}}><button className="clear-filter" onClick={()=>{setCompareIds([]);writeCompareIds([])}}>Clear</button><Link href="/compare" className="action" style={{width:"auto",padding:"0 20px",display:"inline-flex",alignItems:"center",textDecoration:"none",marginTop:0}}>Compare →</Link></div></div>}
  </div>;
 }
