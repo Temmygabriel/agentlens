@@ -17,7 +17,7 @@ export default function AgentDetail({params}:{params:Promise<{id:string}>}){
  if(!agent)return <main className="container" style={{padding:"60px 0",color:"#667085"}}>Loading agent evidence…</main>;
  const m=agent.metadata,services=health?.services||m?.services||[];
  return <div className="shell">
-  <nav className="nav"><div className="container" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Link href="/" className="brand"><span className="brand-mark">A</span>AgentLens</Link><span className="nav-note">Evidence-first agent marketplace</span></div></nav>
+  <nav className="nav"><div className="container" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Link href="/" className="brand"><span className="brand-mark">A</span>AgentLens</Link><div style={{display:"flex",alignItems:"center",gap:22}}><Link href="/" className="nav-link">Explore</Link><Link href="/discover" className="nav-link">Discover</Link><span className="nav-note">Evidence-first agent marketplace</span></div></div></nav>
   <main className="container">
    <section className="detail-hero"><Link href="/" className="crumb">← Back to agents</Link></section>
    <div className="detail-grid">
