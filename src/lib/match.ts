@@ -33,10 +33,14 @@ export function rankAgents(query:string,agents:MatchInput[]){
     const protocols=agent.protocols??[];
     const text=`${name} ${desc} ${meta} ${capabilities.join(" ")} ${domains.join(" ")}`;
     let score=0;
-    const reasons:string[]=[];
+    // Each reason carries a rank so the strongest evidence (observed
+    // liveness, declared skills) always surfaces first, regardless of the
+    // order it happened to be discovered in. Scoring is unchanged.
+    const reasons:{text:string;rank:number}[]=[];
+    const why=(text:string,rank:number)=>{reasons.push({text,rank})};
 
-    if(q&&name===q){score+=60;reasons.push("Exact name match")}
-    else if(q&&name.includes(q)){score+=35;reasons.push("Name matches your request")}
+    if(q&&name===q){score+=60;why("Exact name match",100)}
+    else if(q&&name.includes(q)){score+=35;why("Name matches your search",82)}
 
     for(const t of ts){
       if(text.includes(t)){
@@ -44,19 +48,11 @@ export function rankAgents(query:string,agents:MatchInput[]){
         // more than a keyword happening to appear in free text.
         const inCapability=capabilities.some(c=>c.includes(t));
         const inDomain=domains.some(d=>d.includes(t));
-        if(inCapability||inDomain){
-          score+=18;
-          if(reasons.length<4)reasons.push(inCapability?`Declared capability matches "${t}"`:`Declared domain matches "${t}"`);
-        }else if(name.includes(t)){
-          score+=14;
-          if(reasons.length<4)reasons.push(`Name matches "${t}"`);
-        }else if(meta.includes(t)){
-          score+=10;
-          if(reasons.length<4)reasons.push(`Metadata matches "${t}"`);
-        }else{
-          score+=7;
-          if(reasons.length<4)reasons.push(`Description matches "${t}"`);
-        }
+        if(inCapability){score+=18;why(`Declared skill: ${t}`,90)}
+        else if(inDomain){score+=18;why(`Works in domain: ${t}`,88)}
+        else if(name.includes(t)){score+=14;why(`Name mentions "${t}"`,60)}
+        else if(meta.includes(t)){score+=10;why(`Registration mentions "${t}"`,42)}
+        else{score+=7;why(`Description mentions "${t}"`,32)}
       }
     }
 
@@ -67,10 +63,11 @@ export function rankAgents(query:string,agents:MatchInput[]){
       score+=Math.min(protocols.length*1.5,6);
     }
 
-    if(agent.health_status==="LIVE"){score+=8;reasons.push("Currently reachable")}
-    else if(agent.health_status==="TIMEOUT")score+=2;
+    if(agent.health_status==="LIVE"){score+=8;why("Live now — passed a health check",95)}
+    else if(agent.health_status==="TIMEOUT"){score+=2;why("Endpoint responds slowly",22)}
 
-    return{agent,matchScore:Math.min(100,Math.round(score)),matchReasons:[...new Set(reasons)].slice(0,4)};
+    const matchReasons=[...new Set(reasons.sort((a,b)=>b.rank-a.rank).map(r=>r.text))].slice(0,4);
+    return{agent,matchScore:Math.min(100,Math.round(score)),matchReasons};
   }).sort((a,b)=>b.matchScore-a.matchScore);
 }
 
