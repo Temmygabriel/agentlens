@@ -43,7 +43,7 @@ export type HealthResult = {
   error?: string;
 };
 
-export async function safeProbe(rawUrl: string): Promise<HealthResult> {
+export async function safeProbe(rawUrl: string, timeoutMs: number = TIMEOUT_MS): Promise<HealthResult> {
   let url: URL;
   try {
     url = new URL(rawUrl);
@@ -70,7 +70,7 @@ export async function safeProbe(rawUrl: string): Promise<HealthResult> {
 
   const started = Date.now();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, {
@@ -101,7 +101,7 @@ export async function safeProbe(rawUrl: string): Promise<HealthResult> {
     };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      return { status: "TIMEOUT", latencyMs: TIMEOUT_MS, error: "Request timed out" };
+      return { status: "TIMEOUT", latencyMs: timeoutMs, error: "Request timed out" };
     }
     return {
       status: "UNKNOWN",
