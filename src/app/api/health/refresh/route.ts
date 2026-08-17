@@ -17,6 +17,20 @@ const MAX_SERVICES_PER_AGENT = 4;
 
 type AgentRow = { id: number; agent_id: string; registration_json: unknown };
 
+// Stored registration_json should be a jsonb object, but be defensive: some
+// rows may hold it as a JSON string (or null). Never throw — return {}.
+function asRegistration(raw: unknown): AgentRegistration {
+  if (raw && typeof raw === "object") return raw as AgentRegistration;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as AgentRegistration;
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 // Mirror metadata.ts: prefer "services", fall back to legacy "endpoints".
 function servicesOf(reg: AgentRegistration): AgentService[] {
   if (Array.isArray(reg.services)) return reg.services;
@@ -24,24 +38,41 @@ function servicesOf(reg: AgentRegistration): AgentService[] {
   return [];
 }
 
+type AgentAnalysis = {
+  status: string;
+  serviceCount: number;
+  probed: number;
+  sampleEndpoint?: string;
+  sampleProtocol?: string;
+};
+
 // Probe an agent's declared HTTP services and reduce them to one overall
 // reachability status: any LIVE -> LIVE, else any TIMEOUT -> TIMEOUT (slow),
 // else any DEAD -> DEAD (offline), else UNKNOWN (nothing HTTP-probeable, or
 // every probe was inconclusive). Wallet/email services are not HTTP-probed.
-async function checkAgent(reg: AgentRegistration): Promise<string> {
-  const services = servicesOf(reg)
-    .filter((s) => s && typeof s.endpoint === "string" && s.endpoint.trim().length > 0)
-    .slice(0, MAX_SERVICES_PER_AGENT);
+async function analyzeAgent(reg: AgentRegistration): Promise<AgentAnalysis> {
+  const services = servicesOf(reg).filter(
+    (s) => s && typeof s.endpoint === "string" && s.endpoint.trim().length > 0,
+  );
+  const sliced = services.slice(0, MAX_SERVICES_PER_AGENT);
 
   let live = 0;
   let timeout = 0;
   let dead = 0;
+  let probed = 0;
+  let sampleEndpoint: string | undefined;
+  let sampleProtocol: string | undefined;
 
   await Promise.all(
-    services.map(async (s) => {
+    sliced.map(async (s) => {
       const endpoint = normalizeEndpoint(s.endpoint as string);
       const protocol = classifyServiceProtocol(s.name, endpoint);
+      if (!sampleEndpoint) {
+        sampleEndpoint = endpoint;
+        sampleProtocol = protocol;
+      }
       if (protocol === "agentWallet" || protocol === "email") return;
+      probed++;
       const res = await safeProbe(endpoint, PROBE_TIMEOUT_MS);
       if (res.status === "LIVE") live++;
       else if (res.status === "TIMEOUT") timeout++;
@@ -49,10 +80,8 @@ async function checkAgent(reg: AgentRegistration): Promise<string> {
     }),
   );
 
-  if (live > 0) return "LIVE";
-  if (timeout > 0) return "TIMEOUT";
-  if (dead > 0) return "DEAD";
-  return "UNKNOWN";
+  const status = live > 0 ? "LIVE" : timeout > 0 ? "TIMEOUT" : dead > 0 ? "DEAD" : "UNKNOWN";
+  return { status, serviceCount: services.length, probed, sampleEndpoint, sampleProtocol };
 }
 
 async function refresh(page: number, limit: number) {
@@ -73,21 +102,46 @@ async function refresh(page: number, limit: number) {
   const checkedAt = new Date().toISOString();
   const tally: Record<string, number> = { LIVE: 0, TIMEOUT: 0, DEAD: 0, UNKNOWN: 0 };
 
+  // Diagnostic aggregates — tell us what's actually in the stored data.
+  let rowsWithJson = 0;
+  let rowsWithServices = 0;
+  let rowsProbed = 0;
+  let firstJsonType = "none";
+  let sample: Record<string, unknown> | null = null;
+
   const outcomes: { id: number; status: string }[] = [];
   for (let i = 0; i < rows.length; i += AGENT_CONCURRENCY) {
     const batch = rows.slice(i, i + AGENT_CONCURRENCY);
     const settled = await Promise.all(
       batch.map(async (row) => {
-        let status = "UNKNOWN";
+        const raw = row.registration_json;
+        const jsonType = raw === null ? "null" : Array.isArray(raw) ? "array" : typeof raw;
+        const hasJson = raw !== null && (typeof raw === "object" || typeof raw === "string");
+        let analysis: AgentAnalysis = { status: "UNKNOWN", serviceCount: 0, probed: 0 };
         try {
-          status = await checkAgent((row.registration_json ?? {}) as AgentRegistration);
+          analysis = await analyzeAgent(asRegistration(raw));
         } catch {
-          status = "UNKNOWN";
+          /* keep UNKNOWN */
         }
-        return { id: row.id, status };
+        return { row, hasJson, jsonType, analysis };
       }),
     );
-    outcomes.push(...settled);
+    for (const { row, hasJson, jsonType, analysis } of settled) {
+      if (firstJsonType === "none") firstJsonType = jsonType;
+      if (hasJson) rowsWithJson++;
+      if (analysis.serviceCount > 0) rowsWithServices++;
+      if (analysis.probed > 0) rowsProbed++;
+      if (!sample && analysis.serviceCount > 0) {
+        sample = {
+          agentId: row.agent_id,
+          serviceCount: analysis.serviceCount,
+          endpoint: analysis.sampleEndpoint,
+          protocol: analysis.sampleProtocol,
+          status: analysis.status,
+        };
+      }
+      outcomes.push({ id: row.id, status: analysis.status });
+    }
   }
 
   await Promise.all(
@@ -105,6 +159,7 @@ async function refresh(page: number, limit: number) {
     limit,
     checked: rows.length,
     tally,
+    debug: { rowsWithJson, rowsWithServices, rowsProbed, firstJsonType, sample },
     total,
     remaining: Math.max(total - processedThrough, 0),
     nextPage: processedThrough < total ? page + 1 : null,
