@@ -31,7 +31,7 @@ export default function Compare(){
  function remove(id:string){const next=ids.filter(x=>x!==id);setIds(next);writeCompareIds(next)}
 
  return <div className="shell">
-  <nav className="nav"><div className="container" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Link href="/" className="brand"><span className="brand-mark">A</span>AgentLens</Link><div style={{display:"flex",alignItems:"center",gap:22}}><Link href="/" className="nav-link">Explore</Link><Link href="/discover" className="nav-link">Discover</Link><span className="nav-note">Compare agents</span></div></div></nav>
+  <nav className="nav"><div className="container" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Link href="/" className="brand"><span className="brand-mark">A</span>AgentLens</Link><div style={{display:"flex",alignItems:"center",gap:22}}><Link href="/" className="nav-link">Explore</Link><Link href="/discover" className="nav-link">Discover</Link><Link href="/diversity" className="nav-link">Diversity</Link><span className="nav-note">Compare agents</span></div></div></nav>
   <main className="container">
    <section className="detail-hero"><Link href="/" className="crumb">← Back to agents</Link></section>
    <section style={{paddingBottom:26}}><h1 style={{margin:0,fontSize:32,letterSpacing:"-.04em"}}>Compare agents</h1><p style={{color:"#667085",margin:"8px 0 0"}}>Side-by-side evidence — pick up to 3 agents from Explore or Discover to compare them here.</p></section>
