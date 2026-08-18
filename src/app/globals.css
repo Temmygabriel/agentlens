@@ -62,3 +62,21 @@
 .proof-mini .d{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
 .d-off{background:var(--danger-text)}
 .d-unv{background:var(--text-faint)}
+.gauge{position:relative;width:130px;height:130px;margin:10px auto 4px}
+.gauge-svg{width:130px;height:130px;transform:rotate(-90deg)}
+.gauge-track{fill:none;stroke:rgba(255,255,255,.13);stroke-width:9}
+.gauge-fill{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.4,0,.2,1)}
+.gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge-num{font-size:40px;font-weight:850;letter-spacing:-.04em;line-height:1;color:var(--panel-strong-text)}
+.gauge-max{font-size:11px;color:var(--panel-strong-sub);font-weight:700;margin-top:3px}
+.score-fresh{color:var(--panel-strong-sub);font-size:11px;font-weight:600;margin-top:3px}
+.verify-split{display:grid;grid-template-columns:1fr 1fr;overflow:hidden;margin-top:20px}
+.vs-col{padding:19px 21px}
+.vs-claim{background:var(--subtle-bg)}
+.vs-verified{background:var(--success-bg)}
+.vs-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:11px}
+.vs-claim .vs-eyebrow{color:var(--text-faint)}
+.vs-verified .vs-eyebrow{color:var(--success-text)}
+.vs-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--divider-2);font-size:12.5px;color:var(--text-2)}
+.vs-row strong{color:var(--text);font-weight:750;text-align:right}
+@media(max-width:620px){.verify-split{grid-template-columns:1fr}}
