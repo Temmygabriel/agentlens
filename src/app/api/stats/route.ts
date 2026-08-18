@@ -20,6 +20,16 @@ export async function GET() {
       .select("id", { count: "exact", head: true })
       .eq("chain_id", 56)
       .eq("health_status", "LIVE");
+    const offlineQuery = supabase
+      .from("agents")
+      .select("id", { count: "exact", head: true })
+      .eq("chain_id", 56)
+      .eq("health_status", "DEAD");
+    const slowQuery = supabase
+      .from("agents")
+      .select("id", { count: "exact", head: true })
+      .eq("chain_id", 56)
+      .eq("health_status", "TIMEOUT");
     // Pull just the evidence arrays (bounded) to count distinct types in JS —
     // Postgres array DISTINCT across rows isn't a one-liner via the JS client.
     const rowsQuery = supabase
@@ -28,9 +38,17 @@ export async function GET() {
       .eq("chain_id", 56)
       .limit(1000);
 
-    const [totalRes, liveRes, rowsRes] = await Promise.all([totalQuery, liveQuery, rowsQuery]);
+    const [totalRes, liveRes, offlineRes, slowRes, rowsRes] = await Promise.all([
+      totalQuery,
+      liveQuery,
+      offlineQuery,
+      slowQuery,
+      rowsQuery,
+    ]);
     if (totalRes.error) throw totalRes.error;
     if (liveRes.error) throw liveRes.error;
+    if (offlineRes.error) throw offlineRes.error;
+    if (slowRes.error) throw slowRes.error;
     if (rowsRes.error) throw rowsRes.error;
 
     const capabilityTypes = new Set<string>();
@@ -51,6 +69,8 @@ export async function GET() {
     return NextResponse.json({
       total: totalRes.count ?? 0,
       live: liveRes.count ?? 0,
+      offline: offlineRes.count ?? 0,
+      slow: slowRes.count ?? 0,
       capabilityTypes: capabilityTypes.size,
       protocolTypes: protocolTypes.size,
       domainTypes: domainTypes.size,
