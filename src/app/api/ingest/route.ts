@@ -122,16 +122,17 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const page = Number(body?.page ?? 1);
     const limit = Math.min(Math.max(Number(body?.limit ?? 50), 1), 100);
+    const search = typeof body?.search === "string" ? body.search : "";
 
     if (!Number.isInteger(page) || page < 1) {
       return NextResponse.json({ error: "page must be a positive integer" }, { status: 400 });
     }
 
-    const { agents } = await fetchIndexedAgents({ page, limit, chainId: 56 });
+    const { agents } = await fetchIndexedAgents({ page, limit, chainId: 56, search });
     const supabase = getSupabaseAdmin();
 
     if (!agents.length) {
-      return NextResponse.json({ page, requested: limit, discovered: 0, upserted: 0, metadataResolved: 0 });
+      return NextResponse.json({ page, search, requested: limit, discovered: 0, upserted: 0, metadataResolved: 0 });
     }
 
     const rows = await enrichInBatches(agents);
@@ -146,6 +147,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       page,
+      search,
       requested: limit,
       discovered: agents.length,
       upserted: data?.length ?? 0,

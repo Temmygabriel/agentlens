@@ -48,11 +48,16 @@ function mapAgent(item: any): IndexedAgent | null {
   };
 }
 
-export async function fetchIndexedAgents({ page = 1, limit = 50, chainId = 56 } = {}) {
+export async function fetchIndexedAgents({ page = 1, limit = 50, chainId = 56, search = "" }: { page?: number; limit?: number; chainId?: number; search?: string } = {}) {
   const url = new URL(BASE_URL);
   url.searchParams.set("page", String(page));
   url.searchParams.set("limit", String(Math.min(limit, 100)));
   url.searchParams.set("chainId", String(chainId));
+  // 8004scan supports a fuzzy `search` param. Without it the list only returns
+  // agents in default registry order, which is why whole categories (grid,
+  // rebalancing, health-factor) never made it into the DB. Passing a search
+  // term per category is how we actually populate all four.
+  if (search.trim()) url.searchParams.set("search", search.trim());
 
   const headers: HeadersInit = { accept: "application/json" };
   if (process.env.EIGHT004SCAN_API_KEY) {

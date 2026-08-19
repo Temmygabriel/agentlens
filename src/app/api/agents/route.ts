@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { CAPABILITIES } from "@/lib/discovery";
+import { classifyCategories, categoryById, type CategoryId } from "@/lib/categories";
 import { rankAgents } from "@/lib/match";
 
 export async function GET(request: NextRequest) {
@@ -9,6 +10,7 @@ export async function GET(request: NextRequest) {
     const q = searchParams.get("q")?.trim() ?? "";
     const status = searchParams.get("status")?.trim() ?? "";
     const capability = searchParams.get("capability")?.trim() ?? "";
+    const category = searchParams.get("category")?.trim() ?? "";
     const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 24), 1), 100);
     const offset = Math.max(Number(searchParams.get("offset") ?? 0), 0);
     const supabase = getSupabaseAdmin();
@@ -39,10 +41,15 @@ export async function GET(request: NextRequest) {
         return terms.some(t=>text.includes(t));
       });
     }
+    // Filter to one of the four first-class categories (rebalancing / grid /
+    // yield / health). Classification is from the agent's own declared evidence.
+    if (category && categoryById(category)) {
+      agents = agents.filter(a => classifyCategories(a).includes(category as CategoryId));
+    }
     const ranked=q?rankAgents(q,agents):agents.map(agent=>({agent,matchScore:0,matchReasons:[]}));
-    const page=ranked.slice(offset,offset+limit).map(x=>({...x.agent,matchScore:x.matchScore,matchReasons:x.matchReasons}));
+    const page=ranked.slice(offset,offset+limit).map(x=>({...x.agent,categories:classifyCategories(x.agent),matchScore:x.matchScore,matchReasons:x.matchReasons}));
     const total=ranked.length;
-    return NextResponse.json({agents:page,count:page.length,total,hasMore:offset+limit<total,intent:q||null});
+    return NextResponse.json({agents:page,count:page.length,total,hasMore:offset+limit<total,intent:q||null,category:category||null});
   } catch(error) {
     return NextResponse.json({error:error instanceof Error?error.message:"Failed to load agents"},{status:500});
   }
