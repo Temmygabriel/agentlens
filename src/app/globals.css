@@ -80,3 +80,26 @@
 .vs-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--divider-2);font-size:12.5px;color:var(--text-2)}
 .vs-row strong{color:var(--text);font-weight:750;text-align:right}
 @media(max-width:620px){.verify-split{grid-template-columns:1fr}}
+.cat-section{margin:6px 0 40px}
+.cat-head{display:flex;flex-direction:column;gap:4px;margin:0 0 16px}
+.cat-head h2{margin:0;font-size:24px;letter-spacing:-.03em}
+.cat-head span{color:var(--text-2);font-size:13px}
+.cat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.cat-tile{display:flex;flex-direction:column;gap:14px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:18px;text-decoration:none;position:relative;overflow:hidden;transition:.18s}
+.cat-tile::before{content:"";position:absolute;left:0;top:0;height:100%;width:3px;background:var(--accent);opacity:0;transition:.18s}
+.cat-tile:hover{transform:translateY(-3px);border-color:var(--border-hover);box-shadow:var(--shadow-md)}
+.cat-tile:hover::before{opacity:1}
+.cat-ic{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-size:22px;line-height:1;background:var(--accent-bg);color:var(--accent-text);border:1px solid var(--accent)}
+.cat-body{flex:1}
+.cat-body h3{margin:0 0 6px;font-size:16px;letter-spacing:-.02em}
+.cat-body p{margin:0;color:var(--text-2);font-size:12.5px;line-height:1.5}
+.cat-foot{display:flex;align-items:center;gap:9px;padding-top:13px;border-top:1px solid var(--divider);font-size:12px;color:var(--text-2)}
+.cat-count{font-weight:750;color:var(--text)}
+.cat-live{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--success-text)}
+.cat-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:var(--success-text);box-shadow:0 0 0 0 var(--live-ring);animation:pulse 2.4s ease-out infinite}
+.cat-arrow{margin-left:auto;color:var(--text-faint);font-weight:800;transition:.18s}
+.cat-tile:hover .cat-arrow{color:var(--text);transform:translateX(3px)}
+.cat-hero{padding-top:40px}
+.cat-hero-ic{font-size:15px;margin-right:2px}
+@media(max-width:900px){.cat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.cat-grid{grid-template-columns:1fr}}
