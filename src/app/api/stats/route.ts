@@ -71,7 +71,7 @@ export async function GET() {
 
     // Per-category totals + how many in each are reachable (LIVE) right now.
     const catAgg = new Map<CategoryId, { total: number; live: number }>(
-      CATEGORIES.map((c) => [c.id, { total: 0, live: 0 }]),
+      CATEGORIES.map((c): [CategoryId, { total: number; live: number }] => [c.id, { total: 0, live: 0 }]),
     );
 
     for (const row of rowsRes.data ?? []) {
