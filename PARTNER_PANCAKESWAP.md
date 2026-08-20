@@ -63,6 +63,20 @@ AgentLens — not a mock.
 
 ---
 
+## Mapping to PancakeSwap's own examples
+
+PancakeSwap named four kinds of agent they want to see. Here's where AgentLens
+lands on each — two we cover head-on today, two we align with honestly:
+
+| PancakeSwap's example | AgentLens |
+|---|---|
+| **Smarter liquidity management** | ✅ Our **Rebalancing** category — verified agents that keep V3 concentrated-liquidity positions in range. |
+| **Finding better yields** | ✅ Our **Yield Optimisation** category — verified agents that route capital to the best available APR, PancakeSwap pools included. |
+| **Researching market movements to find where new pools would help** | ◐ Research-type agents in the index can be surfaced; we point an LP to verified ones rather than pretending to run the analysis ourselves. |
+| **Safe automated swaps without ever risking user funds** | ✅ This is our core principle. We only route you to **live-verified** agents, and the on-chain hire step is built to use a **scoped, revocable session key with a spend cap** (Altana) — the agent can act, but never beyond limits you set, and you can revoke in one transaction. "Without risking user funds" is exactly the guarantee we're engineering toward. |
+
+---
+
 ## What we are *not* claiming (honesty)
 
 AgentLens does **not** execute swaps or mint positions on PancakeSwap itself, and

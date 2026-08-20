@@ -1,134 +1,135 @@
 # AgentLens — TermiX "Agent Advantage Report"
 
-**Track:** TermiX (BNB "Smart Money Era" partner track)
-**Prize:** $10,000 USDT total (~$6k / $3k / $1k) · **Requirement:** an "Agent
-Advantage Report" — ≥3 real tasks compared **with vs without an agent** (favours
-trading / security depth)
-**Live site:** https://agentlens-ashy.vercel.app/
-**Repo:** https://github.com/Temmygabriel/agentlens
-**Chain:** BNB Smart Chain (chainId 56) · **Standard:** ERC-8004
+**Track:** TermiX Challenge (BNB "Smart Money Era" partner track)
+**Prize:** $6,000 / $3,000 / $1,000 · **Live site:** https://agentlens-ashy.vercel.app/
+**Repo:** https://github.com/Temmygabriel/agentlens · **Chain:** BNB Smart Chain (56)
 
 ---
 
-## What this report shows (and how to read it honestly)
+## ⚠️ Read this first — what TermiX actually requires
 
-TermiX asks the right question: *does using an agent actually beat doing the task
-by hand?* AgentLens answers a question one level up — **which agent, and can you
-trust it?** — because the advantage of "using an agent" is worth nothing if the
-agent you picked is dead, fake, or unverifiable. So this report measures the
-advantage of the **agent-assisted workflow (find → verify → hire via AgentLens)**
-against the **manual workflow** on three real DeFi tasks.
+TermiX does **not** ask you to integrate anything with them. They will **hire agents
+from your marketplace themselves** and judge whether those agents are worth paying
+for. Their scoring (independent of the main track):
 
-**The honesty boundary, stated up front:**
-- The parts AgentLens **actually ran and can prove** are the discovery and
-  verification: we really did live-check every agent named below (real HTTP
-  reachability, latency, and a last-checked timestamp you can re-run on the site).
-- The **with-vs-without execution contrast** is analysed on *process* metrics —
-  time-to-a-trustworthy-agent, monitoring coverage, reaction latency, and error
-  surface — **not** on invented profit-and-loss numbers. We do not fabricate trade
-  returns; that would break the product's core principle of never inventing data.
-- **Live on-chain execution** (the agent transacting for itself) is the documented
-  next step, isolated on a dedicated branch (Altana scoped/revocable session key).
-  This report is about the advantage that is real *today*.
+| Criterion | Weight | What "great" looks like |
+|---|---|---|
+| **Value of the services** | 30% | Real working agents at a price/speed that beats the alternative. |
+| **Proven agent advantage** | 30% | **Measured, not asserted** — backed by this Agent Advantage Report. |
+| **High-stakes categories & track record** | 20% | Trading, equities, security agents weighted above general-purpose; trading agents need a real record (win rate, window, risk). |
+| **Marketplace quality** | 20% | Find, compare, hire — without instructions. |
 
----
+**The required report must contain:**
+1. **At least 3 real tasks run BOTH ways** — with an agent hired through AgentLens vs. without.
+2. For each task: **time, cost, and output quality**, with the **actual outputs attached**.
+3. **At least one task from trading, stock, or security.**
 
-## Task 1 — Keep a PancakeSwap V3 LP position in range (Rebalancing)
-
-**Without an agent (manual):** Watch the pool. When price drifts out of your
-range, your position stops earning fees. You notice (hours or days later), burn
-the position, and re-mint at a new range — then repeat, forever. Realistic cost:
-tens of minutes of active attention per rebalance, plus **all the fee income lost
-while the position sat out of range unnoticed** (often overnight).
-
-**With an agent (found + verified via AgentLens):** Search **Rebalancing → "Live
-now"**, and AgentLens shows agents that reset LP ranges automatically — each with
-a **verified reachable endpoint**. Pick one whose health check is green, hire it
-in a couple of clicks, and the range is maintained continuously.
-
-**The advantage:** continuous, sub-minute range maintenance vs human-latency
-maintenance — and, crucially, **you started from a verified-live agent**, not a
-guess. *AgentLens verified: 53 rebalancing agents indexed, 22 reachable at check
-time.*
+> **Honesty boundary — important, and we hold to it.** The three task *definitions,
+> procedures, and advantage analysis* below are complete. The **measured numbers and
+> attached outputs must be captured from real runs** — they are marked `‹RUN›` and
+> are deliberately left blank here rather than invented, because inventing them would
+> break the core principle this whole product is built on (never fake data). See
+> "How to complete this report" at the end: each `with-agent` run is a real hire
+> through AgentLens (a verified-live agent's endpoint, or an ERC-8183 job once the
+> Altana branch lands), and each `without-agent` run is the same task done manually.
+> This is the exact report structure TermiX asks for, ready to populate.
 
 ---
 
-## Task 2 — Protect a lending position from liquidation (Health Factor Monitoring)
+## Method
 
-**Without an agent (manual):** You have a leveraged/lending position. Its health
-factor falls as the market moves. Protecting it by hand means watching collateral
-ratios around the clock and reacting **in the seconds-to-minutes** before a
-liquidation — including at 3 a.m. Miss it once and you eat a liquidation penalty.
-Human 24/7 coverage is effectively impossible.
-
-**With an agent (found + verified via AgentLens):** Search **Health Factor
-Monitoring → "Live now"**, hire a verified agent that watches health factor and
-collateral and steps in before liquidation. The agent gives you the one thing a
-human can't: **uninterrupted coverage with machine reaction latency.**
-
-**The advantage:** 24/7 coverage + seconds-scale reaction vs
-sleep-limited human coverage — the single highest-value use of an agent in DeFi,
-and a security/risk task, which is exactly TermiX's focus. *AgentLens verified:
-14 health-monitoring agents indexed, 7 reachable at check time — and this
-category's true scarcity is itself a signal worth knowing before you rely on one.*
+- **Without agent:** a person does the task by hand, timed, with the real output saved.
+- **With agent:** hire a **verified-live** agent through AgentLens (Discover/category →
+  "Live now" → open → Hire → its verified endpoint), run the same task, save the output.
+  AgentLens's job is that you start from an agent that provably works — not a dead listing.
+- **Cost:** gas / any per-call fee for the agent path; "time spent" valued for the manual path.
+- **Output quality:** judged on the attached artifacts, not adjectives.
 
 ---
 
-## Task 3 — Chase the best stablecoin yield across venues (Yield Optimisation)
+## Task 1 — Keep a PancakeSwap V3 LP position in range (DeFi ops · Rebalancing)
 
-**Without an agent (manual):** The best APR moves between pools and protocols.
-Tracking it means checking multiple dashboards, comparing APRs by hand, and moving
-capital yourself every time the ranking changes — most people just don't, so their
-capital sits in a stale pool earning less.
+**Definition:** an LP position has drifted out of range; bring it back into an
+earning range and keep it there for the test window.
 
-**With an agent (found + verified via AgentLens):** Search **Yield Optimisation →
-"Live now"**, hire a verified yield-routing agent, and capital is moved toward the
-best available APR automatically.
+- **Without agent:** watch the pool, notice the drift, burn + re-mint at a new range,
+  repeat. `‹RUN: time __ · cost __ · output (screenshots of manual re-mint + fees earned) __›`
+- **With agent (AgentLens → Rebalancing → Live now):** hire a verified rebalancing
+  agent; it maintains the range automatically for the window.
+  `‹RUN: which agent (name + verified endpoint) __ · time-to-hire __ · cost __ · output __›`
+- **Advantage:** continuous, machine-latency range maintenance + fees captured that a
+  human misses overnight. `‹fill from the two runs›`
 
-**The advantage:** continuous best-APR routing vs
-set-and-forget-and-lose-yield — plus the AgentLens trust layer, so you're
-delegating capital to a **provably reachable** agent, not a listing. *AgentLens
-verified: 133 yield agents indexed, 49 reachable at check time.*
+## Task 2 — Assess liquidation risk and recommend a de-risking action (SECURITY · required)
+
+*This is the required trading/stock/security task.*
+
+**Definition:** given a wallet with a lending position (e.g. Venus/Aave), assess how
+close it is to liquidation and recommend a concrete de-risking action.
+
+- **Without agent:** pull the position by hand, compute health factor / LTV, reason
+  about collateral and thresholds, write the recommendation.
+  `‹RUN: time __ · cost __ · output (the manual analysis doc) __›`
+- **With agent (AgentLens → Health Factor Monitoring → Live now):** hire a verified
+  health-monitoring agent; task it to audit the position and recommend an action.
+  `‹RUN: which agent __ · time __ · cost __ · output (the agent's returned analysis) __›`
+- **Advantage:** 24/7 machine coverage + seconds-scale reaction vs. a human who can't
+  watch overnight — the single highest-value, highest-stakes use of an agent in DeFi.
+  `‹fill from the two runs›`
+
+## Task 3 — Route idle capital to the best available yield (Trading/DeFi · Yield)
+
+**Definition:** given a fixed amount of stablecoins, find and move to the best
+available APR across venues over the test window.
+
+- **Without agent:** check dashboards, compare APRs by hand, move capital manually.
+  `‹RUN: time __ · cost __ · output (the manual APR comparison + where capital ended up) __›`
+- **With agent (AgentLens → Yield Optimisation → Live now):** hire a verified
+  yield-routing agent to do it. `‹RUN: which agent __ · time __ · cost __ · output __›`
+- **Advantage:** continuous best-APR routing vs. set-and-forget under-earning. `‹fill›`
 
 ---
 
-## Summary
+## Results summary (fill from the runs)
 
-| Task | Without an agent | With a verified agent | Advantage dimension |
+| Task | Without agent (time / cost / quality) | With agent (time / cost / quality) | Advantage |
 |---|---|---|---|
-| **1. LP rebalancing** | Manual re-mint, hours of drift, lost fees | Continuous range maintenance | Time + captured fee income |
-| **2. Liquidation defence** | Human can't watch 24/7; 3 a.m. misses | Uninterrupted coverage, machine latency | Risk / security (highest value) |
-| **3. Yield routing** | Stale pools, capital under-earns | Auto-routed to best APR | Continuous optimisation |
+| 1 · LP rebalancing | `‹RUN›` | `‹RUN›` | `‹RUN›` |
+| 2 · Liquidation risk (security) | `‹RUN›` | `‹RUN›` | `‹RUN›` |
+| 3 · Yield routing | `‹RUN›` | `‹RUN›` | `‹RUN›` |
 
-Across all three, AgentLens adds the layer TermiX cares about most: **the agent
-advantage is only real if the agent is real.** AgentLens is the part that
-guarantees you started from a live, verified agent — measured, timestamped, and
-re-runnable on the live site.
+**Attachments:** the actual outputs from each run (manual docs + agent responses),
+linked/embedded here. *(TermiX requires the real outputs attached.)*
 
 ---
 
-## What we measured live vs analysed (repeat, because it matters)
+## Where AgentLens itself scores on the TermiX rubric
 
-- **Measured live and provable:** the reachability, latency, and freshness of every
-  agent behind these categories (open the site → any category → "Live now" → open an
-  agent → "Verify again").
-- **Analysed, not fabricated:** the manual-vs-agent execution contrast, compared on
-  process metrics. No invented P&L, no fake trades.
-- **Next step, isolated on a branch:** live on-chain execution via a scoped,
-  revocable session key (Altana) — the agent transacting for itself inside spend
-  limits the user sets. When that lands, each task above becomes a fully live,
-  end-to-end "we ran it" demonstration.
+- **Marketplace quality (20%):** find → compare → hire with no instructions is exactly
+  the journey we built (category front door, live filter, evidence page, Hire modal).
+- **Value of services / proven advantage (60%):** we don't just list agents — we
+  **live-verify** them, so a TermiX evaluator hiring from our marketplace always starts
+  from a provably reachable agent. Starting from a working agent instead of a dead one
+  *is* a measurable part of the advantage.
+- **High-stakes categories (20%):** Health Factor Monitoring (security/risk) and
+  Rebalancing/Yield (trading-adjacent DeFi) are two of our four first-class categories.
 
 ---
 
-## Ready-to-paste submission summary
+## How to complete this report (the honest path to real numbers)
 
-> **AgentLens's Agent Advantage Report** compares three real DeFi tasks — keeping a
-> PancakeSwap LP in range, defending a lending position from liquidation, and
-> routing to the best yield — done manually vs done by an agent you found and
-> **verified live** through AgentLens. The measurable advantage is continuous,
-> machine-latency execution with 24/7 coverage no human can match, starting from an
-> agent AgentLens proved is actually reachable. We report the advantage honestly:
-> the verification is live and re-runnable on the site; the execution contrast is on
-> process metrics, not invented returns; and full on-chain execution is the
-> documented next step.
+1. **Pick one verified-live agent per task** on the live site (each category → "Live
+   now" → confirm the health gauge is green). Note its name + verified endpoint.
+2. **Run the with-agent side for real:** hire it and either (a) call its verified
+   endpoint directly, or (b) once the `feat/altana-onchain` branch lands, hire it via
+   an ERC-8183 job so the run is an on-chain transaction (which also satisfies the
+   Altana track). Save the returned output.
+3. **Run the without-agent side for real:** do the same task by hand, timed. Save that output.
+4. **Fill every `‹RUN›`** with the measured time/cost and attach both outputs.
+5. At least Task 2 satisfies the required trading/stock/security task.
+
+> Bottom line for the user: TermiX is **not** a pure "write a doc" track — it needs 3
+> tasks genuinely executed with outputs attached. This file is the complete,
+> rubric-shaped report; the remaining work is running the 3 tasks (roughly an
+> afternoon), which the marketplace already makes easy because you start from
+> verified-live agents.
