@@ -10,15 +10,24 @@
 
 **Branch:** `feat/altana-onchain` (off `main` @ `bb488f0`)
 **Track:** "Best Built with Altana" — 50,000 Altana XP (winner-takes-all)
-**Status:** **Phase 1 DONE (2026-08-20).** SDK **installed** (`@altananetwork/sdk@0.8.0`,
-pinned, + deps `ox`/`porto`/`viem`) and its API surface verified against the **installed
-package's own type defs** (not just docs — see "Phase 0/1 — verified" below; the session API
-in the old notes was wrong and is now corrected). Proven end-to-end with our real key via
-`scripts/altana/phase1_setup.mjs`: `signerFromPrivateKey` → `createClient({chains:[BNB_TESTNET]})`
-→ `client.createWallet({signer})` returns a wallet whose **address equals our funded EOA**
-`0xCE79…4780`; testnet **relay reachable**; **tBNB (gas) = 0.2 ✅**; **$U (job budget) = 0** ⚠️.
-Signing scripts run **locally** (key never leaves the PC). **Next = Phase 2**: get testnet **$U**,
-then grant a scoped session + build the revoke UI.
+**Status:** **Phase 2 DONE (2026-08-21) — the CORE track is proven on-chain.** All core
+requirements are live on BNB testnet (chain 97) and independently re-confirmed on a public
+RPC (`status: success`) — see `altana_evidence/README.md`. Signing ran **locally**; the key
+never left the PC. Proven with real txs on wallet `0xCE79…4780`:
+- **Scoped session, registered in KeyStore** — allowlist + `0.01 tBNB`/day + `1 $U`/day caps
+  + 7-day expiry — grant tx `0x1bbbf4ed…20c0e3` (block 126267633).
+- **Real tx THROUGH the session key** (signed by the session key, not admin) — `0x9d9120ce…5083d4`
+  (block 126267675, CONFIRMED).
+- **Revoke in one tx** (immediate) — `0xcc2accbb…4bc67a` (block 126267840).
+
+Phase 1 (still true): `@altananetwork/sdk@0.8.0` installed + API verified against the installed
+type defs; `signerFromPrivateKey` → `createClient({chains:[BNB_TESTNET]})` → `client.createWallet`
+wallet address == funded EOA; tBNB gas present. **Learned in Phase 2:** an ERC-20 `approve` of `$U`
+through a session reverts `NoSpendPermissions` (Porto routes `$U` via Permit2, so a raw approve
+isn't a recognized "spend"); the canonical session spend is a **native-value transfer under a
+native spend cap** — that's what tx #3 does. **Next = Phase 3 (BONUS)**: a full ERC-8183 hire,
+which needs testnet **$U** (owner-only token, no faucet — must come from Altana). And the
+optional **in-product** scope+revoke UI (localhost only, since the key stays local).
 
 ---
 
@@ -34,13 +43,15 @@ with the owner; every session key is registered in a **public on-chain registry
 **To qualify, the submission must show live on-chain transactions in the Altana
 explorer (testnet counts, mainnet is stronger), specifically:**
 
-- [ ] Agents on their **own Altana wallets**.
-- [ ] Sessions with **real limits**: call allowlist, spend cap, expiry.
-- [ ] Sessions **registered in Keystore** (so it's read on-chain, not from the pitch).
-- [ ] **Real on-chain transactions through a session key.**
-- [ ] **User-facing control**: a user can see what their agent may do, and **revoke
-      it, inside the product**.
-- [ ] Include **wallet address(es)** in the submission.
+- [x] Agents on their **own Altana wallets**. → `0xCE79…4780` (self-custodial 7702 smart account).
+- [x] Sessions with **real limits**: call allowlist, spend cap, expiry. → grant tx `0x1bbbf4ed…20c0e3`.
+- [x] Sessions **registered in Keystore** (so it's read on-chain, not from the pitch). → same tx (`register:true`).
+- [x] **Real on-chain transactions through a session key.** → `0x9d9120ce…5083d4` (CONFIRMED).
+- [~] **User-facing control**: revoke works on-chain (`0xcc2accbb…4bc67a`); an **in-product**
+      scope+revoke panel is the remaining polish (localhost-only, since the key stays local).
+- [x] Include **wallet address(es)** in the submission. → `0xCE79…4780` (add at Phase 4).
+
+Evidence: `altana_evidence/README.md` (all hashes re-confirmed on a public RPC).
 
 **Bonus:** hire BNB Agent Studio agents through **ERC-8183** using the Altana
 ERC-8183 SDK; sell over x402/B402 using the x402 server SDK.
