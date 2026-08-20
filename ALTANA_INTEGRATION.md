@@ -10,8 +10,11 @@
 
 **Branch:** `feat/altana-onchain` (off `main` @ `bb488f0`)
 **Track:** "Best Built with Altana" — 50,000 Altana XP (winner-takes-all)
-**Status:** planning only. No SDK installed, no wired code yet (keeps this branch's
-own preview build green until we intentionally start).
+**Status:** Phase 0 verification **DONE (2026-08-20)** — SDK confirmed on npm
+(`@altananetwork/sdk@0.8.0`) and the full API surface verified against the live docs
+(see "Phase 0 — verified" below). A preview-safe typed skeleton now exists at
+`src/lib/altana.ts` (zero external imports, not wired) so this branch's preview build
+stays green. Next is **Phase 1**, which needs a testnet wallet + faucet BNB (user step).
 
 ---
 
@@ -111,11 +114,41 @@ OptimisticPolicy, ERC-8004 registry, and `$U` token for **BSC mainnet (56)** and
 
 ## Build plan (testnet-first, phased)
 
-**Phase 0 — verify + set up (do this before writing code):**
-- Read `https://docs.altana.network/llms-full.txt` (full docs for LLMs),
-  `/concepts/sessions`, and the SDK repo `github.com/altananetwork/altana-sdk`.
-- Attend the Altana workshop / office hours (offered during the build period).
-- Get testnet BNB from `https://testnet.bnbchain.org/faucet-smart` (chain 97).
+**Phase 0 — verify + set up:**
+- ✅ **SDK confirmed** on npm: `@altananetwork/sdk@0.8.0`.
+- ✅ **API verified against the live docs (2026-08-20)** — see "Phase 0 — verified" below.
+- ✅ **Testnet agent wallet generated** (chain 97). The private key is stored **only on
+  the builder's PC** at `~/.agentlens/altana-testnet-wallet.json`, **never committed and
+  never uploaded** (per explicit instruction). Signing in Phase 3 happens **locally** from
+  that file, so the key never leaves the machine. (The public address is not stored in this
+  repo either; it goes in the submission form at Phase 4.)
+- ⬜ Fund the wallet from `https://testnet.bnbchain.org/faucet-smart` (chain 97). **← user step**
+- ⬜ (optional) Altana workshop / office hours during the build period.
+
+### Phase 0 — verified (confirmed from https://docs.altana.network, 2026-08-20)
+
+**Hiring (ERC-8183):** `hireErc8183Agent(session, params, opts) -> { jobId }` (also a
+`(wallet, signer, params, opts)` form). `params = { provider: "0x…seller", task, budget }`;
+`opts = { network }`. One atomic relay intent bundles createJob → registerJob → setBudget →
+approve → fund. **Budget is $U, 18 decimals** (`100_000_000_000_000_000n` = 0.1 $U). Read:
+`getErc8183Job(net, jobId)` (OPEN→FUNDED→SUBMITTED→COMPLETED; check `job.submittedAt > 0n`),
+`getErc8183DeliverableUrl(net, jobId)` (`job.deliverable` is keccak256 of the manifest —
+verify before trusting). Settle: `settleErc8183Job(wallet, signer, { jobId[, action:"dispute"] },
+opts)`; refund after expiry via `buildClaimRefundCall(56, jobId)`. `ERC8183_ADDRESSES` covers
+**BSC 56 AND testnet 97** ✅.
+
+**Sessions:** `grantSession(session)` creates, `execute(session, calls)` uses,
+`revokeSession(...)` revokes in one tx (monotonic; also auto-expires at `expiry`).
+`Session = { walletAddress, signer, publicKey, permissions, expiry(unixSeconds) }`.
+`SessionPermissions = { calls?, spend? }`; `CallPermission = {to} | {signature} | both(AND)`;
+`SpendPermission = { limit, period, token }` (**limit in the token's smallest unit**). Session
+public key is **registered in the on-chain Keystore by default** at grant; verify via
+`isValidKey` (free).
+
+**⚠️ Footguns (baked into `src/lib/altana.ts`):** (1) `permissions.calls` omitted =
+**UNRESTRICTED** within the spend cap → always set BOTH `calls` and `spend`
+(`buildScopedPermissions()` does). (2) Session objects must be **byte-exact on `execute()`**
+→ persist exactly. (3) Keys stay **local/server-side**, never client-shipped.
 
 **Phase 1 — wallet + env:** install `@altananetwork/sdk`; create an Altana agent
 wallet on testnet; store keys as **server-side env vars** (same pattern as the
@@ -158,12 +191,14 @@ put the **wallet address(es)** + explorer links in the submission.
 - Possibly an Altana API key / RPC endpoint (confirm in Phase 0).
 - Testnet `$U` + testnet BNB for gas (from the faucet).
 
-## Open questions to resolve in Phase 0
+## Open questions (updated Phase 0)
 
-- XP allocation mechanics are "to be confirmed" by Altana.
-- Exact session-creation + Keystore-registration API surface (read `/concepts/sessions`).
-- Whether any of the agents already in our index expose an ERC-8183 seller address we
-  can hire directly, vs needing an Altana-built demo seller agent to hire.
+- ✅ **Session-creation + Keystore API surface — RESOLVED** (see "Phase 0 — verified":
+  `grantSession` / `execute` / `revokeSession`; permissions shapes; Keystore-by-default).
+- ⬜ XP allocation mechanics — still "to be confirmed" by Altana.
+- ⬜ Does any agent already in our index expose an ERC-8183 **seller** address we can hire
+  directly? Our HeyAnon agents answered read calls over MCP for the TermiX runs, but that is
+  not the same as an on-chain ERC-8183 seller — confirm in Phase 1.
 
 ## Links
 

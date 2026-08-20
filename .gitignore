@@ -2,5 +2,14 @@ node_modules
 .next
 .env
 .env.local
+.env*
 .vercel
 .DS_Store
+
+# Never commit secrets or wallet/key material (belt-and-suspenders; keys live off-repo)
+*.wallet.json
+*wallet*.json
+*.key
+*.pem
+.agentlens/
+secrets/
