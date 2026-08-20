@@ -10,11 +10,15 @@
 
 **Branch:** `feat/altana-onchain` (off `main` @ `bb488f0`)
 **Track:** "Best Built with Altana" — 50,000 Altana XP (winner-takes-all)
-**Status:** Phase 0 verification **DONE (2026-08-20)** — SDK confirmed on npm
-(`@altananetwork/sdk@0.8.0`) and the full API surface verified against the live docs
-(see "Phase 0 — verified" below). A preview-safe typed skeleton now exists at
-`src/lib/altana.ts` (zero external imports, not wired) so this branch's preview build
-stays green. Next is **Phase 1**, which needs a testnet wallet + faucet BNB (user step).
+**Status:** **Phase 1 DONE (2026-08-20).** SDK **installed** (`@altananetwork/sdk@0.8.0`,
+pinned, + deps `ox`/`porto`/`viem`) and its API surface verified against the **installed
+package's own type defs** (not just docs — see "Phase 0/1 — verified" below; the session API
+in the old notes was wrong and is now corrected). Proven end-to-end with our real key via
+`scripts/altana/phase1_setup.mjs`: `signerFromPrivateKey` → `createClient({chains:[BNB_TESTNET]})`
+→ `client.createWallet({signer})` returns a wallet whose **address equals our funded EOA**
+`0xCE79…4780`; testnet **relay reachable**; **tBNB (gas) = 0.2 ✅**; **$U (job budget) = 0** ⚠️.
+Signing scripts run **locally** (key never leaves the PC). **Next = Phase 2**: get testnet **$U**,
+then grant a scoped session + build the revoke UI.
 
 ---
 
@@ -137,22 +141,35 @@ verify before trusting). Settle: `settleErc8183Job(wallet, signer, { jobId[, act
 opts)`; refund after expiry via `buildClaimRefundCall(56, jobId)`. `ERC8183_ADDRESSES` covers
 **BSC 56 AND testnet 97** ✅.
 
-**Sessions:** `grantSession(session)` creates, `execute(session, calls)` uses,
-`revokeSession(...)` revokes in one tx (monotonic; also auto-expires at `expiry`).
-`Session = { walletAddress, signer, publicKey, permissions, expiry(unixSeconds) }`.
-`SessionPermissions = { calls?, spend? }`; `CallPermission = {to} | {signature} | both(AND)`;
-`SpendPermission = { limit, period, token }` (**limit in the token's smallest unit**). Session
-public key is **registered in the on-chain Keystore by default** at grant; verify via
-`isValidKey` (free).
+**Sessions (CORRECTED — these are `client` METHODS, not standalone functions):** from
+`const client = createClient({ chains:[BNB_TESTNET], defaultChainId:97 })` —
+`client.grantSession({ wallet, signer, permissions, expiry, register? })` returns a `Session`
+(+`transactionHash`); `client.execute({ session, calls })` acts within it; `client.revokeSession({
+wallet, signer, session })` revokes in one tx (immediate; also auto-expires at `expiry`);
+`client.registerSessionKey({ wallet, signer, session })` makes an unregistered key visible in
+KeyStore. `Session = { walletAddress, signer, publicKey, permissions, expiry(unixSeconds) }`.
+`SessionPermissions = { calls?, spend? }`; `CallPermission = {to} | {signature} | {to,signature}(AND)`;
+`SpendPermission = { limit, period:"minute"|"hour"|"day"|"week"|"month"|"year", token? }` (**limit in the
+token's smallest unit; omit token = native coin**). `grantSession` **registers the key in KeyStore by
+default** (`register:true`). Signer for our key = `signerFromPrivateKey(pk)` (its `.address` == the EOA,
+so `createWallet` yields that same address as the smart account). Standalone `execute`/`hireErc8183Agent`
+also exist with `(wallet, signer, …, opts)` OR `(session, …, opts)` overloads, `opts = { network:BNB_TESTNET }`.
 
 **⚠️ Footguns (baked into `src/lib/altana.ts`):** (1) `permissions.calls` omitted =
 **UNRESTRICTED** within the spend cap → always set BOTH `calls` and `spend`
 (`buildScopedPermissions()` does). (2) Session objects must be **byte-exact on `execute()`**
 → persist exactly. (3) Keys stay **local/server-side**, never client-shipped.
 
-**Phase 1 — wallet + env:** install `@altananetwork/sdk`; create an Altana agent
-wallet on testnet; store keys as **server-side env vars** (same pattern as the
-Supabase service-role key — never client-exposed). Chain 97 only, to start.
+**Phase 1 — install + wire + prove (✅ DONE 2026-08-20):** `@altananetwork/sdk@0.8.0`
+installed (pinned) + deps. Local runner scripts added under `scripts/altana/`:
+`_wallet.mjs` (loads the key from `~/.agentlens/…`, never prints it), `whoami.mjs`
+(balance sanity check), `inspect_sdk.mjs` (dumps the real export surface), and
+`phase1_setup.mjs` (signer → client → wallet, reads balances, **no tx**). Proven:
+wallet address == funded EOA, tBNB 0.2, $U 0. **KEY-HANDLING NOTE (overrides the old
+"server-side env var" plan):** by explicit instruction the private key stays **only on the
+builder's PC** and is **never** put in Vercel/env/online — so the signing steps (Phase 2/3)
+run as **local Node scripts**, not from the deployed web app. The deployed app only does
+public reads (job status) + shows the scope/revoke UI. Chain 97 only.
 
 **Phase 2 — scoped session + control UI:** create a session key with **real limits**
 (call allowlist, spend cap, expiry), registered in **Keystore**. Add a small
@@ -191,14 +208,19 @@ put the **wallet address(es)** + explorer links in the submission.
 - Possibly an Altana API key / RPC endpoint (confirm in Phase 0).
 - Testnet `$U` + testnet BNB for gas (from the faucet).
 
-## Open questions (updated Phase 0)
+## Open questions (updated Phase 1)
 
-- ✅ **Session-creation + Keystore API surface — RESOLVED** (see "Phase 0 — verified":
-  `grantSession` / `execute` / `revokeSession`; permissions shapes; Keystore-by-default).
+- ✅ **Session/Keystore API surface — RESOLVED & CORRECTED** (see "Sessions (CORRECTED)":
+  they are `client.grantSession/execute/revokeSession/registerSessionKey` METHODS, not the
+  standalone `grantSession/execute/revokeSession` the Phase 0 note wrongly listed).
+- 🔑 **NEW BLOCKER — testnet $U.** An on-chain hire funds the job budget in `$U`
+  (testnet token `0xc70B8741B8B07A6d61E54fd4B20f22Fa648E5565`), and our wallet holds **0**.
+  Need to source testnet $U (Altana faucet / mint / swap) before Phase 3. Gas (tBNB) is fine.
+  → resolve at the start of Phase 2.
 - ⬜ XP allocation mechanics — still "to be confirmed" by Altana.
 - ⬜ Does any agent already in our index expose an ERC-8183 **seller** address we can hire
   directly? Our HeyAnon agents answered read calls over MCP for the TermiX runs, but that is
-  not the same as an on-chain ERC-8183 seller — confirm in Phase 1.
+  not the same as an on-chain ERC-8183 seller — confirm in Phase 2/3.
 
 ## Links
 
